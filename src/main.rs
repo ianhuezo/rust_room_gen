@@ -17,8 +17,14 @@
 //   if any of the sides are a length of <= one when it's reduced, don't make the room at all, throw an error
 //if new room in certain direction is unsuccessful, the attempt to create a hallway is unsuccessful and removed from room hallway potentials
 
+use num_integer::Roots;
+use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt::Debug;
+
+trait MiddlePosition {
+    fn middle() -> Position;
+}
 
 #[derive(Debug)]
 pub struct Position {
@@ -29,6 +35,13 @@ pub struct Position {
 impl Position {
     pub fn new(row: usize, col: usize) -> Self {
         Position { row, col }
+    }
+
+    pub fn middle_position(row: usize, col: usize) -> Self {
+        Position {
+            row: row / 2,
+            col: col / 2,
+        }
     }
 }
 
@@ -90,16 +103,16 @@ pub struct Side {
 pub struct CardinalSides {
     left: (VecRangeUSize, usize),
     right: (VecRangeUSize, usize),
-    bottom: (usize, VecRangeUSize),
-    top: (usize, VecRangeUSize),
+    bottom: (VecRangeUSize, usize),
+    top: (VecRangeUSize, usize),
 }
 
 impl CardinalSides {
     fn new(
         left: (VecRangeUSize, usize),
         right: (VecRangeUSize, usize),
-        bottom: (usize, VecRangeUSize),
-        top: (usize, VecRangeUSize),
+        bottom: (VecRangeUSize, usize),
+        top: (VecRangeUSize, usize),
     ) -> Self {
         CardinalSides {
             left,
@@ -170,7 +183,7 @@ pub enum Cell {
 }
 
 #[derive(Debug)]
-struct Room {
+pub struct Room {
     room_number: i16,
     corner_positions: CornerPositions, //position relative to some overlying feature
     cardinal_sides: CardinalSides,
@@ -193,14 +206,15 @@ impl<'a> Room {
             cardinal_sides: sides,
         }
     }
+
     fn create_sides(corners: &CornerPositions) -> CardinalSides {
         let top = (
-            corners.top_left.row,
             vec![corners.top_left.col..corners.top_right.col],
+            corners.top_left.row,
         );
         let bottom = (
-            corners.bottom_left.row,
             vec![corners.bottom_left.col..corners.bottom_right.col],
+            corners.bottom_left.row,
         );
         let left = (
             vec![corners.top_left.row..corners.bottom_left.row],
@@ -212,11 +226,7 @@ impl<'a> Room {
         );
         CardinalSides::new(left, right, bottom, top)
     }
-
-    // fn spawn_potential_hall_cells(&self) -> Vec<HallwayCell> {
-    //     let halls = filte
-    // }
-
+    //function to get called once rooms are validated
     fn create_corner_positions(size: &'a Size, top_left: Position) -> CornerPositions {
         let top_right = Position::new(top_left.row + size.row_size, top_left.col);
         let bottom_left = Position::new(top_left.row, top_left.col + size.col_size);
@@ -224,6 +234,9 @@ impl<'a> Room {
             Position::new(top_left.row + size.row_size, top_left.col + size.col_size);
         CornerPositions::new(top_left, bottom_left, top_right, bottom_right)
     }
+    //returns a number of halls that could be created
+    //picks from the 4 sides, returns the side and the potential hall
+    pub fn create_potential_halls(&self, hall_num: usize) -> Vec<(HallwayCell, CardinalSides)> {}
 }
 
 #[derive(Debug)]
@@ -234,7 +247,7 @@ pub struct Maze<'a> {
 }
 
 impl<'a> Maze<'a> {
-    pub fn new(map_size: &'a Size, is_populated: bool) -> Self {
+    pub fn new(map_size: &'a Size) -> Self {
         let empty_maze: Vec<Vec<Cell>> = Maze::empty_cell_vecs(map_size);
         Maze {
             rooms: vec![],
@@ -260,10 +273,59 @@ impl<'a> Maze<'a> {
         }
         grid
     }
+    //intermediary rooms, may have many
+    //accepts a side and hallway
+    //the side determines the direction of the next room, yada yada
+    //the create functions DO NOT place and need to be validated
+    fn create_hallway_room(&self, side: &CardinalSides, cell: &HallwayCell) -> Room {}
 
-    pub fn in_bounds(&self) {}
+    //seed room, only one, doesn't need to be validated
+    fn create_seed_room(&self, room_size: &Size) -> Room {
+        let position = Position::middle_position(self.map_size.row_size, self.map_size.col_size);
+        let room_area = (self.map_size.row_size * self.map_size.col_size).sqrt();
+        let rect_size = Size::new(15, 10);
+        Room::create_seed(&rect_size, position)
+    }
 
-    pub fn add_room(&self) {}
+    fn place_room(&mut self, room: &Room) {}
+
+    //end rooms
+    fn create_ending_room(&self) {}
+
+    //validates that no other rooms are on the present tile
+    //the room is passed into with already pre-determined sides with ranges...
+    //the room checks every single tile in the sides arrays and returns
+    //a boolean if the sides check out.
+    fn validate_room_placement(&self, room: &Room) -> bool {
+        return false;
+    }
+    //where all rooms are added
+    pub fn add_rooms(&self, room_size: &Size, variation: usize, room_count: usize) {
+        let mut current_room = self.create_seed_room(room_size);
+        //while rooms are still available to make
+        let room_queue: VecDeque<Room> = VecDeque::new();
+        room_queue.push_back(current_room);
+        while !room_queue.is_empty() {
+            current_room = room_queue.pop_front(); //have to handle the error...
+            self.place_room(&current_room);
+            //this portion is the potential part of the map that isn't decided until EVERYTHING checks out
+            let hall_sides = current_room.create_potential_halls(4);
+            for (hallway_cell, sides) in &hall_sides {
+                let room = self.create_hallway_room(sides, hallway_cell);
+                let is_valid_room = self.validate_room_placement(&room);
+                if is_valid_room {
+                    room_count -= 1;
+                }
+                if room_count == 0 {
+                    break;
+                }
+                room_queue.push_back(room);
+            }
+        }
+
+        //side Note:  Rooms will always be considered Ending rooms first and then changed later if
+        //the while loop continues, that way I don't have to think about it later :))))))
+    }
 }
 
 fn main() {
@@ -271,5 +333,5 @@ fn main() {
     let position = Position::new(0, 0);
     let rect_size = Size::new(15, 10);
     let room = Room::create_seed(&rect_size, position);
-    let maze = Maze::new(&size, false);
+    let maze = Maze::new(&size);
 }
