@@ -17,10 +17,10 @@
 //   if any of the sides are a length of <= one when it's reduced, don't make the room at all, throw an error
 //if new room in certain direction is unsuccessful, the attempt to create a hallway is unsuccessful and removed from room hallway potentials
 
+use core::cmp::PartialEq;
 use num_integer::Roots;
 use rand::prelude::*;
 use std::collections::VecDeque;
-use std::error::Error;
 use std::fmt::Debug;
 use std::iter::Iterator;
 use std::ops;
@@ -55,6 +55,15 @@ impl ops::Add<Position> for Position {
     }
 }
 
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        if self.row == other.row && self.col == other.col {
+            return true;
+        }
+        false
+    }
+}
+
 #[derive(Debug)]
 pub struct CornerPositions {
     //4 corners of the room
@@ -79,20 +88,31 @@ impl CornerPositions {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum Direction {
+    LEFT,
+    RIGHT,
+    BOTTOM,
+    TOP,
+}
+
 type VecRangeUSize = std::ops::Range<i64>;
 #[derive(Debug)]
 pub struct Side {
     side_points: VecRangeUSize,
     ref_point: i64,
+    direction: Direction,
     start: usize,
     end: usize,
 }
 
 impl Side {
-    fn new(side_points: VecRangeUSize, ref_point: i64) -> Side {
+    fn new(side_points: VecRangeUSize, ref_point: i64, direction: Direction) -> Side {
         Side {
             side_points,
             ref_point,
+            direction,
             start: side_points.start as usize,
             end: side_points.end as usize,
         }
@@ -116,12 +136,16 @@ impl Iterator for Side {
     type Item = Position;
 
     fn next(&mut self) -> Option<Position> {
-        if self.start != self.end - 1 {
-            self.start += 1;
-            Some(Position::new)
-        } else {
-            self.count = 0;
-            None
+        fn act_on_horizontal_axis() -> Position {
+            Position::new(0, 0)
+        }
+        fn act_on_vertical_axis() -> Position {
+            Position::new(0, 0)
+        }
+        match self.direction {
+            Direction::TOP | Direction::BOTTOM => Some(act_on_horizontal_axis()),
+            Direction::LEFT | Direction::RIGHT => Some(act_on_vertical_axis()),
+            _ => None,
         }
     }
 }
@@ -262,18 +286,22 @@ impl<'a> Room {
         let top = Side::new(
             vec![corners.top_left.col..corners.top_right.col],
             corners.top_left.row,
+            Direction::TOP,
         );
         let bottom = Side::new(
             vec![corners.bottom_left.col..corners.bottom_right.col],
             corners.bottom_left.row,
+            Direction::BOTTOM,
         );
         let left = Side::new(
             vec![corners.top_left.row..corners.bottom_left.row],
             corners.bottom_left.col,
+            Direction::LEFT,
         );
         let right = Side::new(
             vec![corners.top_left.row..corners.bottom_left.row],
             corners.bottom_right.col,
+            Direction::RIGHT,
         );
         CardinalSides::new(left, right, bottom, top)
     }
@@ -404,10 +432,11 @@ impl<'a> Maze<'a> {
                 if hall_cell.position == position {
                     continue;
                 }
-                let cell_type = self.grid[cell.position.row][cell.position.col];
-                if cell_type == Cell::Filled {
-                    return false;
-                }
+                let cell_type = self.grid[(position.row) as usize][(position.col) as usize];
+                match cell_type {
+                    Cell::Filled(FilledCell) => return false,
+                    _ => continue,
+                };
             }
         }
         return true;
