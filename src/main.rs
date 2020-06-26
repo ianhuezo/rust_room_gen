@@ -20,16 +20,13 @@
 use core::cmp::PartialEq;
 use num_integer::Roots;
 use rand::prelude::*;
+use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::iter::Iterator;
 use std::ops;
 
-trait MiddlePosition {
-    fn middle() -> Position;
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Position {
     row: i64,
     col: i64,
@@ -97,92 +94,82 @@ pub enum Direction {
     TOP,
 }
 
-type VecRangeUSize = std::ops::Range<i64>;
-#[derive(Debug)]
-pub struct Side {
-    side_points: VecRangeUSize,
-    ref_point: i64,
-    direction: Direction,
+pub struct LeftSide {
     start: usize,
     end: usize,
+    ref_point: i64,
+    direction: Direction,
 }
 
-impl Side {
-    fn new(side_points: VecRangeUSize, ref_point: i64, direction: Direction) -> Side {
-        Side {
-            side_points,
-            ref_point,
-            direction,
-            start: side_points.start as usize,
-            end: side_points.end as usize,
-        }
-    }
-    fn get_side_point(&self, direction: char) -> HallDirection {
-        let start = self.side_points.start + 1;
-        let end = self.side_points.end - 1;
-        let point = rand::thread_rng().gen_range(start, end);
-        let hall = match direction {
-            'r' => HallwayCell::new(Position::new(point, self.ref_point)),
-            'l' => HallwayCell::new(Position::new(point, self.ref_point)),
-            'b' => HallwayCell::new(Position::new(self.ref_point, point)),
-            't' => HallwayCell::new(Position::new(self.ref_point, point)),
+pub struct RightSide {
+    start: usize,
+    end: usize,
+    ref_point: i64,
+    direction: Direction,
+}
+
+pub struct TopSide {
+    start: usize,
+    end: usize,
+    ref_point: i64,
+    direction: Direction,
+}
+
+pub struct BottomSide {
+    start: usize,
+    end: usize,
+    ref_point: i64,
+    direction: Direction,
+}
+
+trait InitializeSide {
+    fn new(start: usize, end: usize, ref_point: i64, direction: Direction) -> Self;
+}
+//i.e top and bottom
+trait ActOnSide {
+    fn choose_point_from_side_range(&self) -> i64;
+    fn choose_random_point_for_hall(&self) -> usize;
+    fn direction(&self) -> &'static Direction;
+    fn get_a_hallway(&self, direction: Direction) -> HallwayCell {
+        let point = self.choose_random_point_for_hall();
+        match direction {
+            Direction::RIGHT => HallwayCell::new(Position::new(
+                point as i64,
+                self.choose_point_from_side_range(),
+            )),
+            Direction::LEFT => HallwayCell::new(Position::new(
+                point as i64,
+                self.choose_point_from_side_range(),
+            )),
+            Direction::BOTTOM => HallwayCell::new(Position::new(
+                self.choose_point_from_side_range(),
+                point as i64,
+            )),
+            Direction::TOP => HallwayCell::new(Position::new(
+                self.choose_point_from_side_range(),
+                point as i64,
+            )),
             _ => panic![],
-        };
-        HallDirection::new(hall, direction)
-    }
-}
-
-impl Iterator for Side {
-    type Item = Position;
-
-    fn next(&mut self) -> Option<Position> {
-        fn act_on_horizontal_axis() -> Position {
-            Position::new(0, 0)
-        }
-        fn act_on_vertical_axis() -> Position {
-            Position::new(0, 0)
-        }
-        match self.direction {
-            Direction::TOP | Direction::BOTTOM => Some(act_on_horizontal_axis()),
-            Direction::LEFT | Direction::RIGHT => Some(act_on_vertical_axis()),
-            _ => None,
         }
     }
 }
 
-#[derive(Debug)]
-pub struct CardinalSides {
-    left: Side,
-    right: Side,
-    bottom: Side,
-    top: Side,
-    sides: Vec<Side>,
-    count: usize,
+pub enum Side {
+    Left(LeftSide),
+    Right(RightSide),
+    Top(TopSide),
+    Bottom(BottomSide),
 }
 
-impl CardinalSides {
-    fn new(left: Side, right: Side, bottom: Side, top: Side) -> Self {
-        CardinalSides {
-            left,
-            right,
-            bottom,
-            top,
-            sides: vec![left, right, bottom, top],
-            count: 0,
-        }
-    }
-}
-
-impl Iterator for CardinalSides {
-    type Item = Side;
-
-    fn next(&mut self) -> Option<Side> {
-        if self.count < 4 {
-            self.count += 1;
-            Some(self.sides[self.count - 1])
-        } else {
-            self.count = 0;
-            None
+impl InitializeSide for Side {
+    fn new(start: usize, end: usize, ref_point: i64, direction: Direction) -> Self {
+        match direction {
+            LeftSide => Side::Left(LeftSide {
+                start,
+                end,
+                ref_point,
+                direction: Direction::LEFT,
+            }),
         }
     }
 }
@@ -233,6 +220,16 @@ pub struct FilledCell {
     position: Position,
 }
 
+impl FilledCell {
+    fn new(position: Position) -> Self {
+        //This should be the same lifetime as the hallway cell
+        FilledCell {
+            repr: 'F',
+            position,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct HallwayCell {
     repr: char,
@@ -268,8 +265,8 @@ pub struct Room {
     // map: RefCell<Weak<Map>>, //This will be a weak reference
 }
 
-impl<'a> Room {
-    fn create_seed(size: &'a Size, top_left: Position) -> Self {
+impl Room {
+    fn create_seed(size: &Size, top_left: Position) -> Self {
         let corner_positions = Room::create_corner_positions(size, top_left);
         let sides = Room::create_sides(&corner_positions);
         Room {
@@ -284,29 +281,33 @@ impl<'a> Room {
 
     fn create_sides(corners: &CornerPositions) -> CardinalSides {
         let top = Side::new(
-            vec![corners.top_left.col..corners.top_right.col],
+            corners.top_left.col as usize,
+            corners.top_right.col as usize,
             corners.top_left.row,
             Direction::TOP,
         );
         let bottom = Side::new(
-            vec![corners.bottom_left.col..corners.bottom_right.col],
+            corners.bottom_left.col as usize,
+            corners.bottom_right.col as usize,
             corners.bottom_left.row,
             Direction::BOTTOM,
         );
         let left = Side::new(
-            vec![corners.top_left.row..corners.bottom_left.row],
+            corners.top_left.row as usize,
+            corners.bottom_left.row as usize,
             corners.bottom_left.col,
             Direction::LEFT,
         );
         let right = Side::new(
-            vec![corners.top_left.row..corners.bottom_left.row],
+            corners.top_left.row as usize,
+            corners.bottom_left.row as usize,
             corners.bottom_right.col,
             Direction::RIGHT,
         );
         CardinalSides::new(left, right, bottom, top)
     }
     //function to get called once rooms are validated
-    fn create_corner_positions(size: &'a Size, top_left: Position) -> CornerPositions {
+    fn create_corner_positions(size: &Size, top_left: Position) -> CornerPositions {
         let top_right = Position::new(top_left.row + size.row_size, top_left.col);
         let bottom_left = Position::new(top_left.row, top_left.col + size.col_size);
         let bottom_right =
@@ -319,7 +320,7 @@ impl<'a> Room {
         let mut rng = rand::thread_rng();
         let mut sides = vec!['r', 'l', 'b', 't'];
         sides.shuffle(&mut rng);
-        let num = rng.gen_range(1, 3);
+        let mut num = rng.gen_range(1, 3);
         let mut hall_directions: Vec<HallDirection> = vec![];
         while num != 0 {
             num -= 1;
@@ -404,7 +405,8 @@ impl<'a> Maze<'a> {
             'l' => Room::create_left_room(&hall_direction.cell),
             'r' => Room::create_right_room(&hall_direction.cell),
             't' => Room::create_top_room(&hall_direction.cell),
-            'b' => Room::create_bottom_room(&hall_direction.cell), //this whole thing could be rewritten as an enum, lets do that instead...
+            'b' => Room::create_bottom_room(&hall_direction.cell),
+            _ => panic![],
         }
     }
 
@@ -416,7 +418,25 @@ impl<'a> Maze<'a> {
         Room::create_seed(&rect_size, position)
     }
 
-    fn place_room(&mut self, room: &Room) {}
+    fn place_room(&mut self, room: &Room) {
+        let top_left = &room.corner_positions.top_left;
+        let bottom_right = &room.corner_positions.bottom_right;
+        let rows_range = top_left.row as usize..bottom_right.row as usize;
+        let cols_range = top_left.col as usize..bottom_right.col as usize;
+        for i in rows_range {
+            for j in cols_range {
+                if i == top_left.row as usize || i == bottom_right.row as usize {
+                    continue;
+                }
+                if j == top_left.col as usize || i == bottom_right.col as usize {
+                    continue;
+                }
+                let position = Position::new(i as i64, j as i64);
+                let filled_cell = FilledCell::new(position);
+                self.grid[i][j] = Cell::Filled(filled_cell);
+            }
+        }
+    }
 
     //end rooms
     fn create_ending_room(&self) {}
@@ -425,15 +445,15 @@ impl<'a> Maze<'a> {
     //the room is passed into with already pre-determined sides with ranges...
     //the room checks every single tile in the sides arrays and returns
     //a boolean if the sides check out.
-    fn validate_room_placement(&self, room: &Room, hall_cell: HallwayCell) -> bool {
-        for side in room.cardinal_sides {
+    fn validate_room_placement(&mut self, room: &Room, hall_cell: HallwayCell) -> bool {
+        for side in *&room.cardinal_sides {
             //need to make iterators of these
             for position in side {
                 if hall_cell.position == position {
                     continue;
                 }
-                let cell_type = self.grid[(position.row) as usize][(position.col) as usize];
-                match cell_type {
+                let cell_type = &self.grid[(position.row) as usize][(position.col) as usize];
+                match &*cell_type {
                     Cell::Filled(FilledCell) => return false,
                     _ => continue,
                 };
@@ -442,12 +462,12 @@ impl<'a> Maze<'a> {
         return true;
     }
     //where all rooms are added
-    pub fn add_rooms(&self, room_size: &Size, variation: i64, room_count: i64) {
+    pub fn add_rooms(&mut self, room_size: &Size, room_count: i64) {
         let mut current_room = self.create_seed_room(room_size);
         //while rooms are still available to make
-        let room_queue: VecDeque<Room> = VecDeque::new();
+        let mut room_queue: VecDeque<Room> = VecDeque::new();
         room_queue.push_back(current_room);
-        while !room_queue.is_empty() {
+        while !room_queue.is_empty() && room_count > 0 {
             current_room = room_queue.pop_front().unwrap(); //I would like to panic :)
             self.place_room(&current_room);
             //this portion is the potential part of the map that isn't decided until EVERYTHING checks out
@@ -475,8 +495,7 @@ impl<'a> Maze<'a> {
 
 fn main() {
     let size = Size::new(255, 255);
-    let position = Position::new(0, 0);
-    let rect_size = Size::new(15, 10);
-    let room = Room::create_seed(&rect_size, position);
-    let maze = Maze::new(&size);
+    let room_size = Size::new(15, 15);
+    let mut maze = Maze::new(&size);
+    maze.add_rooms(&room_size, 3)
 }
