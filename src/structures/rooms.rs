@@ -5,13 +5,14 @@ use std::collections::HashMap;
 pub struct Room {
     start: Position,
     stop: Position,
-    cells: HashMap<Position, Cell>,
+    pub cells: HashMap<Position, Cell>, //Make a reference
 }
 
 impl Room {
     //Room always start left to right, top to bottom
     pub fn new(start: Position, stop: Position) -> Self {
         let mut cells: HashMap<Position, Cell> = HashMap::new();
+        let mut sides: HashMap<Cell, Vec<Position>> = HashMap::new();
         for y in start.y..stop.y {
             for x in start.x..stop.x {
                 let current = Position::new(x, y);
@@ -32,10 +33,10 @@ impl Room {
         current.x == start.x
     }
     fn is_right(current: &Position, stop: &Position) -> bool {
-        current.x == stop.x
+        current.x == stop.x - 1
     }
     fn is_bottom(current: &Position, stop: &Position) -> bool {
-        current.y == stop.y
+        current.y == stop.y - 1
     }
     fn apply_appropriate_cell_type(current: &Position, start: &Position, stop: &Position) -> Cell {
         //I apply all booleans first so all of them get equal treatment
@@ -47,11 +48,16 @@ impl Room {
             || is_top && is_left
             || is_bottom && is_left
             || is_bottom && is_right;
-        let is_side = is_top || is_bottom || is_right || is_left;
         if is_corner {
             Cell::Corner
-        } else if is_side {
-            Cell::Side
+        } else if is_left {
+            Cell::LeftSide
+        } else if is_right {
+            Cell::RightSide
+        } else if is_top {
+            Cell::TopSide
+        } else if is_bottom {
+            Cell::BottomSide
         } else {
             Cell::MainRoom
         }

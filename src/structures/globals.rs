@@ -9,3 +9,8 @@ impl Position {
         Position { x, y }
     }
 }
+
+pub struct PositionRange {
+    pub start: Position,
+    pub stop: Position,
+}

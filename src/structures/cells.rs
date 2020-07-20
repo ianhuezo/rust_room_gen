@@ -1,13 +1,13 @@
-pub struct GeneralCell {
-    pub repr: char,
-}
-
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Cell {
     Hall,
     Empty,
     Corner,
     MainRoom,
-    Side,
+    TopSide,
+    BottomSide,
+    LeftSide,
+    RightSide,
 }
 
 impl Cell {
@@ -17,7 +17,10 @@ impl Cell {
             Cell::Empty => 'X',
             Cell::Corner => 'C',
             Cell::MainRoom => 'O',
-            Cell::Side => 'S',
+            Cell::LeftSide => 'L',
+            Cell::RightSide => 'R',
+            Cell::TopSide => 'T',
+            Cell::BottomSide => 'B',
         }
     }
 }
