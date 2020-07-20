@@ -33,6 +33,7 @@ impl Universe {
                 let cell = &self.cells[&position];
                 write!(file, "{} ", cell.to_char());
             }
+            write!(file, "\n");
         }
     }
 }
