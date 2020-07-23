@@ -53,7 +53,7 @@ impl Universe {
     }
 
     pub fn place_room(&mut self, room: &Room) {
-        //cells are copied rather
+        //cells are copied rather than referenced b/c I plan to make room rc eventually
         for (position, cell) in &room.cells {
             *self.cells.get_mut(position).unwrap() = **cell;
         }
