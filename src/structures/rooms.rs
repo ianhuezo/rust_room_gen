@@ -1,28 +1,38 @@
 use super::cells::Cell;
 use super::globals::Position;
+use std::cell::RefCell;
+use std::collections::hash_map::*;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub struct Room {
     start: Position,
     stop: Position,
-    pub cells: HashMap<Position, Cell>, //Make a reference
+    sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>>,
+    pub cells: HashMap<Rc<Position>, Rc<Cell>>, //Make a reference
 }
 
 impl Room {
     //Room always start left to right, top to bottom
     pub fn new(start: Position, stop: Position) -> Self {
-        let mut cells: HashMap<Position, Cell> = HashMap::new();
-        let mut sides: HashMap<Cell, Vec<Position>> = HashMap::new();
+        let mut cells: HashMap<Rc<Position>, Rc<Cell>> = HashMap::new();
+        let mut sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>> = HashMap::new();
         for y in start.y..stop.y {
             for x in start.x..stop.x {
-                let current = Position::new(x, y);
-                let cell_type = Self::apply_appropriate_cell_type(&current, &start, &stop);
-                cells.insert(current, cell_type);
+                let current = Rc::new(Position::new(x, y));
+                let cell_type = Rc::new(Self::apply_appropriate_cell_type(&current, &start, &stop));
+                cells.insert(Rc::clone(&current), Rc::clone(&cell_type));
+                sides
+                    .entry(Rc::clone(&cell_type))
+                    .or_insert(RefCell::new(Vec::new()))
+                    .get_mut()
+                    .push(Rc::clone(&current))
             }
         }
         Room {
             start: start,
             stop: stop,
+            sides,
             cells: cells,
         }
     }

@@ -54,7 +54,7 @@ impl Universe {
 
     pub fn place_room(&mut self, room: &Room) {
         for (position, cell) in &room.cells {
-            *self.cells.get_mut(position).unwrap() = *cell; //The cell is copied, I like this impl
+            *self.cells.get_mut(position).unwrap() = **cell; //The cell is copied, I like this impl
         }
     }
 
