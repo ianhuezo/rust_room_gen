@@ -53,9 +53,12 @@ impl Universe {
     }
 
     pub fn place_room(&mut self, room: &Room) {
+        //cells are copied rather
         for (position, cell) in &room.cells {
-            *self.cells.get_mut(position).unwrap() = **cell; //The cell is copied, I like this impl
+            *self.cells.get_mut(position).unwrap() = **cell;
         }
+        let hall_position = room.choose_random_side();
+        *self.cells.get_mut(&hall_position).unwrap() = Cell::Hall;
     }
 
     pub fn create_cells_txt(&self, file_name: &str) {

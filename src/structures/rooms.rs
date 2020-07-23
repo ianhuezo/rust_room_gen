@@ -26,7 +26,7 @@ impl Room {
                     .entry(Rc::clone(&cell_type))
                     .or_insert(RefCell::new(Vec::new()))
                     .get_mut()
-                    .push(Rc::clone(&current))
+                    .push(Rc::clone(&current));
             }
         }
         Room {
@@ -36,6 +36,11 @@ impl Room {
             cells: cells,
         }
     }
+    pub fn choose_random_side(&self) -> Rc<Position> {
+        let position = self.sides[&Rc::new(Cell::LeftSide)].borrow_mut();
+        Rc::clone(&position[0])
+    }
+
     fn is_top(current: &Position, start: &Position) -> bool {
         current.y == start.y
     }
