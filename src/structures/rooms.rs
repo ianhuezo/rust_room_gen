@@ -1,15 +1,15 @@
 use super::cells::Cell;
 use super::globals::Position;
+use rand::*;
 use std::cell::RefCell;
-use std::collections::hash_map::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Room {
     start: Position,
     stop: Position,
-    sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>>,
-    pub cells: HashMap<Rc<Position>, Rc<Cell>>, //Make a reference
+    sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>>, //I want to access the room either way, both with strong references
+    pub cells: HashMap<Rc<Position>, Rc<Cell>>,
 }
 
 impl Room {
@@ -36,9 +36,14 @@ impl Room {
             cells: cells,
         }
     }
-    pub fn choose_random_side(&self) -> Rc<Position> {
-        let position = self.sides[&Rc::new(Cell::LeftSide)].borrow_mut();
-        Rc::clone(&position[0])
+    pub fn place_hall_on_side(&self, cell: Cell) -> Rc<Position> {
+        let side_cell = match cell {
+            Cell::LeftSide | Cell::RightSide | Cell::TopSide | Cell::BottomSide => cell,
+            _ => panic!("Invalid cell type, only sides can be chosen"),
+        };
+        let position = self.sides[&Rc::new(side_cell)].borrow_mut();
+        let random_index = thread_rng().gen_range(0, position.len() - 1);
+        Rc::clone(&position[random_index])
     }
 
     fn is_top(current: &Position, start: &Position) -> bool {

@@ -57,7 +57,7 @@ impl Universe {
         for (position, cell) in &room.cells {
             *self.cells.get_mut(position).unwrap() = **cell;
         }
-        let hall_position = room.choose_random_side();
+        let hall_position = room.place_hall_on_side(Cell::TopSide);
         *self.cells.get_mut(&hall_position).unwrap() = Cell::Hall;
     }
 
