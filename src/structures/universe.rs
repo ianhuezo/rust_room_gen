@@ -2,13 +2,15 @@ use super::cells::Cell;
 use super::globals::*;
 use super::rooms::Room;
 use rand::prelude::*;
+use rand::seq::SliceRandom;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::fs::*;
 use std::io::prelude::*;
+use std::rc::Rc;
 
 pub struct Universe {
     cells: HashMap<Position, Cell>,
-    current_room: Option<Box<Room>>,
     universe_size: i64,
 }
 
@@ -23,16 +25,64 @@ impl Universe {
         }
         Universe {
             cells,
-            current_room: None,
             universe_size,
         }
     }
-    pub fn generate_rooms(room_number: usize) {}
+    pub fn generate_rooms(&mut self, mut room_number: usize) {
+        let mut current_room = self.create_starting_room();
+        let mut next_room = self.create_starting_room();
+        let sides = vec![
+            Cell::TopSide,
+            Cell::LeftSide,
+            Cell::BottomSide,
+            Cell::RightSide,
+        ];
+        let mut side_direction = sides.choose(&mut rand::thread_rng()).unwrap();
+        let mut hall_position = current_room.get_random_cell_position_on_side(*side_direction);
+        let mut queue: VecDeque<Rc<Position>> = VecDeque::new();
+        queue.push_back(hall_position);
+        while room_number >= 0 {
+            hall_position = match queue.pop_front() {
+                Some(v) => v,
+                None => break,
+            };
+            self.place_room(&current_room);
+            side_direction = &current_room.cells[&hall_position];
+            next_room = match side_direction {
+                Cell::LeftSide => self.create_left_room(hall_position),
+                _ => break,
+            };
+            self.place_room(&next_room);
+            room_number -= 1;
+            break;
+        }
+    }
 
-    pub fn create_starting_room(&mut self) {
+    //this can be generic to any room with a callback, will refactor to it
+    fn create_left_room(&mut self, position: Rc<Position>) -> Room {
+        let room = Room::create_left_room(
+            position,
+            &Size {
+                width: 8,
+                height: 6,
+            },
+            Position::new(self.universe_size, self.universe_size),
+            &self.cells,
+        );
+        match room {
+            Some(room) => room,
+            None => panic!("Room cannot be none"),
+        }
+    }
+
+    pub fn create_starting_room(&mut self) -> Room {
         let position_range = self.random_valid_initial_position(5, 7);
-        let room = Room::new(position_range.start, position_range.stop);
-        self.place_room(&room);
+        Room::new(
+            position_range.start,
+            position_range.stop,
+            Position::new(self.universe_size, self.universe_size),
+        )
+        .unwrap()
     }
 
     pub fn random_valid_initial_position(
@@ -52,13 +102,16 @@ impl Universe {
         PositionRange { start, stop }
     }
 
-    pub fn place_room(&mut self, room: &Room) {
+    fn place_room(&mut self, room: &Room) {
         //cells are copied rather than referenced b/c I plan to make room rc eventually
         for (position, cell) in &room.cells {
             *self.cells.get_mut(position).unwrap() = **cell;
         }
-        let hall_position = room.place_hall_on_side(Cell::TopSide);
-        *self.cells.get_mut(&hall_position).unwrap() = Cell::Hall;
+    }
+
+    fn place_hall(&mut self, position: &Position) {
+        //cells are copied rather than referenced b/c I plan to make room rc eventually
+        *self.cells.get_mut(position).unwrap() = Cell::Hall;
     }
 
     pub fn create_cells_txt(&self, file_name: &str) {

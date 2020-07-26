@@ -6,6 +6,6 @@ use structures::universe::Universe;
 
 fn main() {
     let mut universe = Universe::new(64);
-    universe.create_starting_room();
+    universe.generate_rooms(2);
     universe.create_cells_txt("cells.txt")
 }
