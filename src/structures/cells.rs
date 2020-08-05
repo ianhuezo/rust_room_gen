@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Cell {
     Hall,
     Empty,

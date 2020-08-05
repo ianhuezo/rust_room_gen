@@ -17,8 +17,8 @@ pub struct Universe {
 impl Universe {
     pub fn new(universe_size: i64) -> Self {
         let mut cells: HashMap<Position, Cell> = HashMap::new();
-        for y in 0..universe_size {
-            for x in 0..universe_size {
+        for y in 0..universe_size - 1 {
+            for x in 0..universe_size - 1 {
                 let position = Position::new(x, y);
                 cells.insert(position, Cell::Empty);
             }
@@ -48,6 +48,7 @@ impl Universe {
             };
             self.place_room(&current_room);
             side_direction = &current_room.cells[&hall_position];
+            self.place_hall(Position::new(hall_position.x, hall_position.y));
             next_room = match side_direction {
                 Cell::LeftSide => self.create_left_room(hall_position),
                 _ => break,
@@ -93,7 +94,7 @@ impl Universe {
         let middle_universe = self.universe_size / 2 - self.universe_size / 8;
         let start = Position::new(middle_universe, middle_universe);
         let mut rand_gen = thread_rng();
-        let threshold = 3;
+        let threshold = 5;
         let random_x_vector: i64 =
             rand_gen.gen_range(start.x + threshold, start.x + threshold + max_x_vector);
         let random_y_vector: i64 =
@@ -105,20 +106,22 @@ impl Universe {
     fn place_room(&mut self, room: &Room) {
         //cells are copied rather than referenced b/c I plan to make room rc eventually
         for (position, cell) in &room.cells {
-            *self.cells.get_mut(position).unwrap() = **cell;
+            if *self.cells.get_mut(position).unwrap() == Cell::Empty {
+                *self.cells.get_mut(position).unwrap() = **cell;
+            }
         }
     }
 
-    fn place_hall(&mut self, position: &Position) {
+    fn place_hall(&mut self, position: Position) {
         //cells are copied rather than referenced b/c I plan to make room rc eventually
-        *self.cells.get_mut(position).unwrap() = Cell::Hall;
+        *self.cells.get_mut(&position).unwrap() = Cell::Hall;
     }
 
     pub fn create_cells_txt(&self, file_name: &str) {
         let mut file = File::create(file_name).expect("Unable to create file");
 
-        for y in 0..self.universe_size {
-            for x in 0..self.universe_size {
+        for y in 0..self.universe_size - 1 {
+            for x in 0..self.universe_size - 1 {
                 let position = Position::new(x, y);
                 let cell = &self.cells[&position];
                 write!(file, "{} ", cell.to_char());

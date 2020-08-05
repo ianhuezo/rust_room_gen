@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Room {
+    pub start: Position,
+    pub stop: Position,
     sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>>, //I want to access the room either way, both with strong references
     pub cells: HashMap<Rc<Position>, Rc<Cell>>,
 }
@@ -13,16 +15,16 @@ pub struct Room {
 impl Room {
     //Room always start left to right, top to bottom
     pub fn new(start: Position, stop: Position, max_position: Position) -> Option<Self> {
-        let bad_positions = Self::greater_than_max(&start, &stop, &max_position);
-        // || Self::greater_than_stop(&start, &stop)
-        // || Self::less_than_zero(&start, &stop);
+        let bad_positions = Self::greater_than_max(&start, &stop, &max_position)
+            || Self::greater_than_stop(&start, &stop)
+            || Self::less_than_zero(&start, &stop);
         match bad_positions {
             true => None,
-            false => Some(Self::create_generic_room(&start, &stop)),
+            false => Some(Self::create_generic_room(start, stop)),
         }
     }
 
-    fn create_generic_room(start: &Position, stop: &Position) -> Self {
+    fn create_generic_room(start: Position, stop: Position) -> Self {
         let mut cells: HashMap<Rc<Position>, Rc<Cell>> = HashMap::new();
         let mut sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>> = HashMap::new();
         for y in start.y..stop.y {
@@ -38,6 +40,8 @@ impl Room {
             }
         }
         Room {
+            start,
+            stop,
             sides,
             cells: cells,
         }
@@ -49,14 +53,13 @@ impl Room {
         max_position: Position,
         universe_cells: &HashMap<Position, Cell>,
     ) -> Option<Self> {
-        let stop_x = (*position).x + 1;
-        let mut rand_gen = thread_rng();
-        let mut start_y = (*position).y - 1; //start with offset of one b/c first row are sides.
-        let mut stop_y = start_y + room_size.height;
-        let start_x = (*position).x - room_size.width;
+        let stop_x = position.x + 1; //need to remember that this is a hall
+        let start_y = position.y - 1;
+        let stop_y = start_y + room_size.height;
+        let start_x = stop_x - room_size.width;
         Room::new(
-            Position::new(start_x, stop_x),
-            Position::new(start_y, stop_y),
+            Position::new(start_x, start_y),
+            Position::new(stop_x, stop_y),
             max_position,
         )
     }
@@ -66,12 +69,16 @@ impl Room {
             _ => panic!("Invalid cell type, only sides can be chosen"),
         };
         let position = self.sides[&Rc::new(side_cell)].borrow_mut();
-        let random_index = thread_rng().gen_range(0, position.len() - 1);
-        Rc::clone(&position[random_index])
+        if position.len() > 1 {
+            let random_index = thread_rng().gen_range(0, position.len() - 1);
+            Rc::clone(&position[random_index])
+        } else {
+            Rc::clone(&position[0])
+        }
     }
 
     fn greater_than_stop(start: &Position, stop: &Position) -> bool {
-        start.x <= stop.x || start.y <= stop.y
+        start.x >= stop.x || start.y >= stop.y
     }
 
     fn greater_than_max(start: &Position, stop: &Position, max: &Position) -> bool {

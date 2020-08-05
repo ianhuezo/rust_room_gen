@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub struct Position {
     pub x: i64,
     pub y: i64,
