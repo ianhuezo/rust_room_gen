@@ -15,6 +15,24 @@ pub struct PositionRange {
     pub stop: Position,
 }
 
+impl PositionRange {
+    //scales the perimeter of the square so that all sides are basically reduced to the next inner sides
+    pub fn scale_perimeter(&self, scale_factor: i64) -> PositionRange {
+        let start_position = &self.start;
+        let end_position = &self.stop;
+        let scaled_start_position = Position::new(
+            start_position.x + scale_factor,
+            start_position.y + scale_factor,
+        );
+        let scaled_stop_position =
+            Position::new(end_position.x - scale_factor, end_position.y - scale_factor);
+        PositionRange {
+            start: scaled_start_position,
+            stop: scaled_stop_position,
+        }
+    }
+}
+
 pub struct Size {
     pub width: i64,
     pub height: i64,

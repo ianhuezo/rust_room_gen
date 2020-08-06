@@ -49,38 +49,78 @@ impl Universe {
             self.place_room(&current_room);
             side_direction = &current_room.cells[&hall_position];
             self.place_hall(Position::new(hall_position.x, hall_position.y));
-            next_room = match side_direction {
-                Cell::LeftSide => self.create_left_room(hall_position),
+            let start_and_stop_room_positions = match side_direction {
+                Cell::LeftSide => self.create_start_stop_ranges(hall_position),
                 _ => break,
             };
+            // if self.is_valid_room(&start_and_stop_room_positions) {
+            next_room = Room::new(
+                &start_and_stop_room_positions.start,
+                &start_and_stop_room_positions.stop,
+                Position::new(self.universe_size, self.universe_size),
+            )
+            .unwrap();
             self.place_room(&next_room);
+            // }
             room_number -= 1;
             break;
         }
     }
 
+    fn is_valid_room(&self, positions: &PositionRange) -> bool {
+        let (start, stop) = (&positions.start, &positions.stop);
+        for val in start.x..stop.x {
+            let start_positions = Position::new(val, start.y);
+            let stop_positions = Position::new(val, stop.y);
+            if self.cells.contains_key(&start_positions) {
+                return false;
+            };
+            if self.cells.contains_key(&stop_positions) {
+                return false;
+            }
+        }
+        for val in start.y..stop.y {
+            let start_entry = self.cells[&Position::new(start.x, val)];
+            let stop_entry = self.cells[&Position::new(stop.x, val)];
+            match start_entry {
+                Cell::Empty => true,
+                Cell::LeftSide | Cell::RightSide | Cell::TopSide | Cell::BottomSide => {
+                    return false
+                }
+                _ => return false,
+            };
+            //just make this into a function with cells to validate...
+            match stop_entry {
+                Cell::Empty => true,
+                Cell::LeftSide
+                | Cell::RightSide
+                | Cell::TopSide
+                | Cell::BottomSide
+                | Cell::Hall
+                | Cell::MainRoom => return false,
+                _ => return false,
+            };
+        }
+        true
+    }
+
     //this can be generic to any room with a callback, will refactor to it
-    fn create_left_room(&mut self, position: Rc<Position>) -> Room {
-        let room = Room::create_left_room(
+    fn create_start_stop_ranges(&mut self, position: Rc<Position>) -> PositionRange {
+        Room::create_left_or_right_start_and_stop_positions(
             position,
             &Size {
                 width: 8,
                 height: 6,
             },
             Position::new(self.universe_size, self.universe_size),
-            &self.cells,
-        );
-        match room {
-            Some(room) => room,
-            None => panic!("Room cannot be none"),
-        }
+        )
     }
 
     pub fn create_starting_room(&mut self) -> Room {
         let position_range = self.random_valid_initial_position(5, 7);
         Room::new(
-            position_range.start,
-            position_range.stop,
+            &position_range.start,
+            &position_range.stop,
             Position::new(self.universe_size, self.universe_size),
         )
         .unwrap()

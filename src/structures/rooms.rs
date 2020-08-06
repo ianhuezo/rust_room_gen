@@ -6,25 +6,23 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Room {
-    pub start: Position,
-    pub stop: Position,
     sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>>, //I want to access the room either way, both with strong references
     pub cells: HashMap<Rc<Position>, Rc<Cell>>,
 }
 
 impl Room {
     //Room always start left to right, top to bottom
-    pub fn new(start: Position, stop: Position, max_position: Position) -> Option<Self> {
+    pub fn new(start: &Position, stop: &Position, max_position: Position) -> Option<Self> {
         let bad_positions = Self::greater_than_max(&start, &stop, &max_position)
             || Self::greater_than_stop(&start, &stop)
             || Self::less_than_zero(&start, &stop);
         match bad_positions {
             true => None,
-            false => Some(Self::create_generic_room(start, stop)),
+            false => Some(Self::create_generic_room(&start, &stop)),
         }
     }
 
-    fn create_generic_room(start: Position, stop: Position) -> Self {
+    fn create_generic_room(start: &Position, stop: &Position) -> Self {
         let mut cells: HashMap<Rc<Position>, Rc<Cell>> = HashMap::new();
         let mut sides: HashMap<Rc<Cell>, RefCell<Vec<Rc<Position>>>> = HashMap::new();
         for y in start.y..stop.y {
@@ -40,28 +38,29 @@ impl Room {
             }
         }
         Room {
-            start,
-            stop,
             sides,
             cells: cells,
         }
     }
+    fn offset_y_position(position: Rc<Position>, room_size: &Size) -> (i64, i64) {
+        let y = position.y - 1;
+        let z = thread_rng().gen_range(0, room_size.height);
+        let start = y - z;
+        let stop = y + room_size.height - z;
+        (start, stop)
+    }
 
-    pub fn create_left_room(
+    pub fn create_left_or_right_start_and_stop_positions(
         position: Rc<Position>,
         room_size: &Size,
         max_position: Position,
-        universe_cells: &HashMap<Position, Cell>,
-    ) -> Option<Self> {
-        let stop_x = position.x + 1; //need to remember that this is a hall
-        let start_y = position.y - 1;
-        let stop_y = start_y + room_size.height;
+    ) -> PositionRange {
+        let stop_x = position.x + 1;
         let start_x = stop_x - room_size.width;
-        Room::new(
-            Position::new(start_x, start_y),
-            Position::new(stop_x, stop_y),
-            max_position,
-        )
+        let (start_y, stop_y) = Self::offset_y_position(position, room_size);
+        let start = Position::new(start_x, start_y);
+        let stop = Position::new(stop_x, stop_y);
+        PositionRange { start, stop }
     }
     pub fn get_random_cell_position_on_side(&self, cell: Cell) -> Rc<Position> {
         let side_cell = match cell {
