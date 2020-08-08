@@ -49,11 +49,8 @@ impl Universe {
             self.place_room(&current_room);
             side_direction = &current_room.cells[&hall_position];
             self.place_hall(Position::new(hall_position.x, hall_position.y));
-            let start_and_stop_room_positions = match side_direction {
-                Cell::LeftSide => self.create_start_stop_ranges(hall_position),
-                _ => break,
-            };
-            // if self.is_valid_room(&start_and_stop_room_positions) {
+            let start_and_stop_room_positions =
+                self.create_start_stop_ranges(hall_position, side_direction);
             next_room = Room::new(
                 &start_and_stop_room_positions.start,
                 &start_and_stop_room_positions.stop,
@@ -61,7 +58,6 @@ impl Universe {
             )
             .unwrap();
             self.place_room(&next_room);
-            // }
             room_number -= 1;
             break;
         }
@@ -69,16 +65,6 @@ impl Universe {
 
     fn is_valid_room(&self, positions: &PositionRange) -> bool {
         let (start, stop) = (&positions.start, &positions.stop);
-        for val in start.x..stop.x {
-            let start_positions = Position::new(val, start.y);
-            let stop_positions = Position::new(val, stop.y);
-            if self.cells.contains_key(&start_positions) {
-                return false;
-            };
-            if self.cells.contains_key(&stop_positions) {
-                return false;
-            }
-        }
         for val in start.y..stop.y {
             let start_entry = self.cells[&Position::new(start.x, val)];
             let stop_entry = self.cells[&Position::new(stop.x, val)];
@@ -105,14 +91,18 @@ impl Universe {
     }
 
     //this can be generic to any room with a callback, will refactor to it
-    fn create_start_stop_ranges(&mut self, position: Rc<Position>) -> PositionRange {
-        Room::create_left_or_right_start_and_stop_positions(
+    fn create_start_stop_ranges(
+        &mut self,
+        position: Rc<Position>,
+        cell_type: &Cell,
+    ) -> PositionRange {
+        Room::create_start_and_stop_positions(
             position,
             &Size {
-                width: 8,
-                height: 6,
+                width: thread_rng().gen_range(5, 10),
+                height: thread_rng().gen_range(5, 10),
             },
-            Position::new(self.universe_size, self.universe_size),
+            cell_type,
         )
     }
 

@@ -43,24 +43,42 @@ impl Room {
         }
     }
     fn offset_y_position(position: Rc<Position>, room_size: &Size) -> (i64, i64) {
+        let clipping_size = 2;
         let y = position.y - 1;
         let z = thread_rng().gen_range(0, room_size.height);
         let start = y - z;
-        let stop = y + room_size.height - z;
+        let stop = y + room_size.height - z + clipping_size;
         (start, stop)
     }
-
-    pub fn create_left_or_right_start_and_stop_positions(
+    fn offset_x_position(position: &Rc<Position>, room_size: &Size) -> (i64, i64) {
+        let clipping_size = 2;
+        let x = position.x - 1;
+        let z = thread_rng().gen_range(0, room_size.width);
+        let start = x - z;
+        let stop = x + room_size.width - z + clipping_size;
+        (start, stop)
+    }
+    pub fn create_start_and_stop_positions(
         position: Rc<Position>,
         room_size: &Size,
-        max_position: Position,
+        cell_type: &Cell,
     ) -> PositionRange {
-        let stop_x = position.x + 1;
-        let start_x = stop_x - room_size.width;
-        let (start_y, stop_y) = Self::offset_y_position(position, room_size);
-        let start = Position::new(start_x, start_y);
-        let stop = Position::new(stop_x, stop_y);
-        PositionRange { start, stop }
+        let (start_x, stop_x) = match cell_type {
+            Cell::LeftSide => Self::left_start_stop_x_range(&position, room_size),
+            Cell::RightSide => Self::right_start_stop_x_range(&position, room_size),
+            Cell::TopSide | Cell::BottomSide => Self::offset_x_position(&position, room_size),
+            _ => Self::left_start_stop_x_range(&position, room_size),
+        };
+        let (start_y, stop_y) = match cell_type {
+            Cell::LeftSide | Cell::RightSide => Self::offset_y_position(position, room_size),
+            Cell::TopSide => Self::top_start_stop_y_range(&position, room_size),
+            Cell::BottomSide => Self::bottom_start_stop_y_position(&position, room_size),
+            _ => Self::offset_y_position(position, room_size),
+        };
+        PositionRange {
+            start: Position::new(start_x, start_y),
+            stop: Position::new(stop_x, stop_y),
+        }
     }
     pub fn get_random_cell_position_on_side(&self, cell: Cell) -> Rc<Position> {
         let side_cell = match cell {
@@ -74,6 +92,26 @@ impl Room {
         } else {
             Rc::clone(&position[0])
         }
+    }
+
+    fn bottom_start_stop_y_position(position: &Rc<Position>, room_size: &Size) -> (i64, i64) {
+        (position.y, position.y - 1 + room_size.height)
+    }
+
+    fn top_start_stop_y_range(position: &Rc<Position>, room_size: &Size) -> (i64, i64) {
+        let stop_y = position.y + 1;
+        let start_y = stop_y - room_size.height;
+        (start_y, stop_y)
+    }
+
+    fn left_start_stop_x_range(position: &Rc<Position>, room_size: &Size) -> (i64, i64) {
+        let stop_x = position.x + 1;
+        let start_x = stop_x - room_size.width;
+        (start_x, stop_x)
+    }
+
+    fn right_start_stop_x_range(position: &Rc<Position>, room_size: &Size) -> (i64, i64) {
+        (position.x, position.x - 1 + room_size.width)
     }
 
     fn greater_than_stop(start: &Position, stop: &Position) -> bool {
