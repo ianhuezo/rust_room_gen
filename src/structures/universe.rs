@@ -28,39 +28,50 @@ impl Universe {
             universe_size,
         }
     }
-    pub fn generate_rooms(&mut self, mut room_number: usize) {
+    pub fn generate_rooms(&mut self, mut room_number: i64) {
+        //create a starting room
+        //have a queue to contain these rooms
+        //pop a room out of queue
+        //generate the halls from that room
+        //try to create each room from each hall generated
+        //validate each time a room is created
+        //add the newly created room to the queue in the front
+        //profit
         let mut current_room = self.create_starting_room();
-        let mut next_room = self.create_starting_room();
         let sides = vec![
             Cell::TopSide,
             Cell::LeftSide,
             Cell::BottomSide,
             Cell::RightSide,
         ];
-        let mut side_direction = sides.choose(&mut rand::thread_rng()).unwrap();
-        let mut hall_position = current_room.get_random_cell_position_on_side(*side_direction);
-        let mut queue: VecDeque<Rc<Position>> = VecDeque::new();
-        queue.push_back(hall_position);
+        let mut queue: VecDeque<Room> = VecDeque::new();
+        queue.push_back(current_room);
         while room_number >= 0 {
-            hall_position = match queue.pop_front() {
+            current_room = match queue.pop_front() {
                 Some(v) => v,
                 None => break,
             };
             self.place_room(&current_room);
-            side_direction = &current_room.cells[&hall_position];
-            let start_and_stop_room_positions =
-                self.create_start_stop_ranges(Rc::clone(&hall_position), side_direction);
-            if self.is_valid_room(&start_and_stop_room_positions, &side_direction) {
-                self.place_hall(&hall_position);
-                next_room = Room::new(
-                    &start_and_stop_room_positions.start,
-                    &start_and_stop_room_positions.stop,
-                    Position::new(self.universe_size, self.universe_size),
-                )
-                .unwrap();
+            for room_side in sides.choose_multiple(&mut rand::thread_rng(), 4) {
+                let hall_cell = current_room.get_random_cell_position_on_side(*room_side);
+                let start_and_stop_room_positions =
+                    self.create_start_stop_ranges(Rc::clone(&hall_cell), room_side);
+                if self.is_valid_room(&start_and_stop_room_positions, &room_side) {
+                    let next_room = Room::new(
+                        &start_and_stop_room_positions.start,
+                        &start_and_stop_room_positions.stop,
+                        Position::new(self.universe_size, self.universe_size),
+                    );
+                    if room_number > 0 {
+                        match next_room {
+                            Some(val) => queue.push_back(val),
+                            None => continue,
+                        };
+                        self.place_hall(&hall_cell);
+                        room_number -= 1;
+                    }
+                }
             }
-            room_number -= 1;
-            break;
         }
     }
     fn validate_x_positions(&self, positions: &PositionRange, reference_cell: &Cell) -> bool {
@@ -68,6 +79,7 @@ impl Universe {
         let mut is_valid = true;
         for val in start.x..stop.x {
             let mut current_position = Position::new(val, stop.y - 1);
+            // print!("{}, {}\n", val, stop.y - 1);
             if *reference_cell == self.cells[&current_position]
                 || self.cells[&current_position] == Cell::Hall
                 || self.cells[&current_position] == Cell::Corner
