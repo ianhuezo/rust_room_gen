@@ -48,46 +48,89 @@ impl Universe {
             };
             self.place_room(&current_room);
             side_direction = &current_room.cells[&hall_position];
-            self.place_hall(Position::new(hall_position.x, hall_position.y));
             let start_and_stop_room_positions =
-                self.create_start_stop_ranges(hall_position, side_direction);
-            next_room = Room::new(
-                &start_and_stop_room_positions.start,
-                &start_and_stop_room_positions.stop,
-                Position::new(self.universe_size, self.universe_size),
-            )
-            .unwrap();
-            self.place_room(&next_room);
+                self.create_start_stop_ranges(Rc::clone(&hall_position), side_direction);
+            if self.is_valid_room(&start_and_stop_room_positions, &side_direction) {
+                self.place_hall(&hall_position);
+                next_room = Room::new(
+                    &start_and_stop_room_positions.start,
+                    &start_and_stop_room_positions.stop,
+                    Position::new(self.universe_size, self.universe_size),
+                )
+                .unwrap();
+            }
             room_number -= 1;
             break;
         }
     }
-
-    fn is_valid_room(&self, positions: &PositionRange) -> bool {
-        let (start, stop) = (&positions.start, &positions.stop);
-        for val in start.y..stop.y {
-            let start_entry = self.cells[&Position::new(start.x, val)];
-            let stop_entry = self.cells[&Position::new(stop.x, val)];
-            match start_entry {
-                Cell::Empty => true,
-                Cell::LeftSide | Cell::RightSide | Cell::TopSide | Cell::BottomSide => {
-                    return false
+    fn validate_x_positions(&self, positions: &PositionRange, reference_cell: &Cell) -> bool {
+        let (start, stop) = (positions.start, positions.stop); //This is copied here, should have better way without copying, idk how to implement yet though
+        let mut is_valid = true;
+        for val in start.x..stop.x {
+            let mut current_position = Position::new(val, stop.y - 1);
+            if *reference_cell == self.cells[&current_position]
+                || self.cells[&current_position] == Cell::Hall
+                || self.cells[&current_position] == Cell::Corner
+            {
+                continue;
+            }
+            is_valid = is_valid
+                && match self.cells[&current_position] {
+                    Cell::Empty => true,
+                    _ => false,
+                };
+            current_position = Position::new(val, start.y);
+            if *reference_cell == self.cells[&current_position]
+                || self.cells[&current_position] == Cell::Hall
+                || self.cells[&current_position] == Cell::Corner
+            {
+                continue;
+            }
+            is_valid = is_valid
+                && match self.cells[&current_position] {
+                    Cell::Empty => true,
+                    _ => false,
                 }
-                _ => return false,
-            };
-            //just make this into a function with cells to validate...
-            match stop_entry {
-                Cell::Empty => true,
-                Cell::LeftSide
-                | Cell::RightSide
-                | Cell::TopSide
-                | Cell::BottomSide
-                | Cell::Hall
-                | Cell::MainRoom => return false,
-                _ => return false,
-            };
         }
-        true
+        is_valid
+    }
+
+    fn validate_y_positions(&self, positions: &PositionRange, reference_cell: &Cell) -> bool {
+        let (start, stop) = (positions.start, positions.stop); //This is copied here, should have better way without copying, idk how to implement yet though
+        let mut is_valid = true;
+        for val in start.y..stop.y {
+            let mut current_position = Position::new(stop.x - 1, val);
+            if *reference_cell == self.cells[&current_position]
+                || self.cells[&current_position] == Cell::Hall
+                || self.cells[&current_position] == Cell::Corner
+            {
+                continue;
+            }
+            is_valid = is_valid
+                && match self.cells[&current_position] {
+                    Cell::Empty => true,
+                    _ => false,
+                };
+            current_position = Position::new(stop.y, val);
+            if *reference_cell == self.cells[&current_position]
+                || self.cells[&current_position] == Cell::Hall
+                || self.cells[&current_position] == Cell::Corner
+            {
+                continue;
+            }
+            is_valid = is_valid
+                && match self.cells[&current_position] {
+                    Cell::Empty => true,
+                    _ => false,
+                }
+        }
+        is_valid
+    }
+
+    fn is_valid_room(&self, positions: &PositionRange, reference_cell: &Cell) -> bool {
+        let is_horizontal_valid = self.validate_x_positions(positions, reference_cell);
+        let is_vertical_valid = self.validate_y_positions(positions, reference_cell);
+        is_horizontal_valid && is_vertical_valid
     }
 
     //this can be generic to any room with a callback, will refactor to it
@@ -142,9 +185,9 @@ impl Universe {
         }
     }
 
-    fn place_hall(&mut self, position: Position) {
+    fn place_hall(&mut self, position: &Position) {
         //cells are copied rather than referenced b/c I plan to make room rc eventually
-        *self.cells.get_mut(&position).unwrap() = Cell::Hall;
+        *self.cells.get_mut(position).unwrap() = Cell::Hall;
     }
 
     pub fn create_cells_txt(&self, file_name: &str) {
