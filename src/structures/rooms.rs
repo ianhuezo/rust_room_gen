@@ -94,6 +94,14 @@ impl Room {
         }
     }
 
+    pub fn get_current_side(&self, cell: Cell) -> Vec<Rc<Position>> {
+        let side_cell = match cell {
+            Cell::LeftSide | Cell::RightSide | Cell::TopSide | Cell::BottomSide => cell,
+            _ => panic!("Invalid cell type, only sides can be chosen"),
+        };
+        self.sides[&Rc::new(side_cell)].borrow_mut().to_vec()
+    }
+
     fn bottom_start_stop_y_position(position: &Rc<Position>, room_size: &Size) -> (i64, i64) {
         (position.y, position.y - 1 + room_size.height)
     }

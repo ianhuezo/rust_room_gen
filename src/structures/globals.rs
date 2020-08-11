@@ -8,6 +8,20 @@ impl Position {
     pub fn new(x: i64, y: i64) -> Self {
         Position { x, y }
     }
+
+    pub fn greater_than_zero(&self) -> bool {
+        if self.x < 0 || self.y < 0 {
+            return false;
+        }
+        true
+    }
+
+    pub fn less_than_max(&self, max: i64) -> bool {
+        if self.x < max - 1 || self.y < max - 1 {
+            return true;
+        }
+        false
+    }
 }
 
 pub struct PositionRange {
