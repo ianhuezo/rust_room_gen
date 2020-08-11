@@ -1,7 +1,5 @@
 mod structures;
 
-use structures::globals::Position;
-use structures::rooms::Room;
 use structures::universe::Universe;
 
 fn main() {

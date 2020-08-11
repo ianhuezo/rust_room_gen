@@ -14,9 +14,9 @@ impl Cell {
     pub fn to_char(&self) -> char {
         match self {
             Cell::Hall => 'H',
-            Cell::Empty => 'X',
+            Cell::Empty => ' ',
             Cell::Corner => 'C',
-            Cell::MainRoom => 'O',
+            Cell::MainRoom => '.',
             Cell::LeftSide => 'L',
             Cell::RightSide => 'R',
             Cell::TopSide => 'T',
