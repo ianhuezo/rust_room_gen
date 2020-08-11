@@ -2,4 +2,10 @@
 
 ---
 
-I will eventually make a lib.rs and move things around, but that will be later
+I implemented a genetic algorithm to create rooms dynamically for fun.  I am eventually
+going to try this out with WASM.
+
+---
+
+Some bugs that require refactoring include:
+- The validator for needs to be improved, otherwise some bad rooms appear sometimes due to the fact that the match doesn't cover all cases
