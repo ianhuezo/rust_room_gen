@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 pub struct Universe {
     cells: HashMap<Position, Cell>,
+    cell_iterations: Vec<HashMap<Position, Cell>>,
     universe_size: i64,
 }
 
@@ -25,6 +26,7 @@ impl Universe {
         }
         Universe {
             cells,
+            cell_iterations: Vec::new(),
             universe_size,
         }
     }
@@ -46,12 +48,14 @@ impl Universe {
         ];
         let mut queue: VecDeque<Room> = VecDeque::new();
         queue.push_back(current_room);
+
         while room_number >= 0 {
             current_room = match queue.pop_front() {
                 Some(v) => v,
                 None => break,
             };
             self.place_room(&current_room);
+            self.cell_iterations.push(self.cells.clone());
             for room_side in sides.choose_multiple(&mut rand::thread_rng(), 4) {
                 let hall_cell = current_room.get_random_cell_position_on_side(*room_side);
                 let skipped_side = current_room.get_current_side(*room_side);
