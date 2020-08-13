@@ -1,4 +1,6 @@
-#[derive(PartialEq, Eq, Hash, Debug, Copy, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Copy, Clone)]
 pub struct Position {
     pub x: i64,
     pub y: i64,
@@ -23,7 +25,7 @@ impl Position {
         false
     }
 }
-
+#[derive(Serialize, Deserialize)]
 pub struct PositionRange {
     pub start: Position,
     pub stop: Position,
@@ -46,7 +48,7 @@ impl PositionRange {
         }
     }
 }
-
+#[derive(Serialize, Deserialize)]
 pub struct Size {
     pub width: i64,
     pub height: i64,

@@ -1,4 +1,6 @@
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Cell {
     Hall,
     Empty,

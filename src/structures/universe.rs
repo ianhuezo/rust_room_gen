@@ -3,16 +3,18 @@ use super::globals::*;
 use super::rooms::Room;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fs::*;
 use std::io::prelude::*;
 use std::rc::Rc;
 
+#[derive(Serialize, Deserialize)]
 pub struct Universe {
-    cells: HashMap<Position, Cell>,
-    cell_iterations: Vec<HashMap<Position, Cell>>,
-    universe_size: i64,
+    pub cells: HashMap<Position, Cell>,
+    pub cell_iterations: Vec<HashMap<Position, Cell>>,
+    pub universe_size: i64,
 }
 
 impl Universe {
