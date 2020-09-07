@@ -7,5 +7,5 @@ going to try this out with WASM.
 
 ---
 
-Some bugs that require refactoring include:
-- The validator for rooms needs to be improved, otherwise some bad rooms appear sometimes due to the fact that the match doesn't cover all cases
+This launches with your own custom javascript interface which produces randomly generated
+rooms.
