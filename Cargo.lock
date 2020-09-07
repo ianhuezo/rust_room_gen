@@ -16,6 +16,11 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "fnv"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "getrandom"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -199,6 +204,7 @@ dependencies = [
  "num-integer 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde-wasm-bindgen 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.67 (registry+https://github.com/rust-lang/crates.io-index)",
  "web-sys 0.3.44 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -214,6 +220,17 @@ version = "1.0.115"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde_derive 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "fnv 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "js-sys 0.3.44 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen 0.2.67 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -320,6 +337,7 @@ dependencies = [
 "checksum autocfg 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 "checksum bumpalo 3.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2e8c087f005730276d1096a652e92a8bacee2e2472bcc9715a74d2bec38b5820"
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+"checksum fnv 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 "checksum getrandom 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "7abc8dd8451921606d809ba32e95b6111925cd2906060d2dcc29c070220503eb"
 "checksum itoa 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "dc6f3ad7b9d11a0c00842ff8de1b60ee58661048eb8049ed33c73594f359d7e6"
 "checksum js-sys 0.3.44 (registry+https://github.com/rust-lang/crates.io-index)" = "85a7e2c92a4804dd459b86c339278d0fe87cf93757fae222c3fa3ae75458bc73"
@@ -343,6 +361,7 @@ dependencies = [
 "checksum rand_hc 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
 "checksum ryu 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
 "checksum serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)" = "e54c9a88f2da7238af84b5101443f0c0d0a3bbdc455e34a5c9497b1903ed55d5"
+"checksum serde-wasm-bindgen 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7ee6f12f7ed0e7ad2e55200da37dbabc2cadeb942355c5b629aa3771f5ac5636"
 "checksum serde_derive 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)" = "609feed1d0a73cc36a0182a840a9b37b4a82f0b1150369f0536a9e3f2a31dc48"
 "checksum serde_json 1.0.57 (registry+https://github.com/rust-lang/crates.io-index)" = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
 "checksum syn 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)" = "e69abc24912995b3038597a7a593be5053eb0fb44f3cc5beec0deb421790c1f4"

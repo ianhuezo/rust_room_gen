@@ -49,6 +49,7 @@ impl Universe {
             Cell::RightSide,
         ];
         let mut queue: VecDeque<Room> = VecDeque::new();
+        let mut hall_queue: VecDeque<std::rc::Rc<Position>> = VecDeque::new();
         queue.push_back(current_room);
 
         while room_number >= 0 {
@@ -56,13 +57,24 @@ impl Universe {
                 Some(v) => v,
                 None => break,
             };
-            self.place_room(&current_room);
+            let successfully_placed = self.place_room(&current_room);
+            if !successfully_placed {
+                hall_queue.pop_front();
+                continue;
+            }
+            match hall_queue.pop_front() {
+                Some(v) => self.place_hall(&v),
+                None => print!("placed nothing..."),
+            }
             self.cell_iterations.push(self.cells.clone());
             for room_side in sides.choose_multiple(&mut rand::thread_rng(), 4) {
                 let hall_cell = current_room.get_random_cell_position_on_side(*room_side);
                 let skipped_side = current_room.get_current_side(*room_side);
                 let start_and_stop_room_positions =
-                    self.create_start_stop_ranges(Rc::clone(&hall_cell), room_side);
+                    match self.create_start_stop_ranges(Rc::clone(&hall_cell), room_side) {
+                        Some(v) => v,
+                        None => continue,
+                    };
                 if self.is_valid_room(&start_and_stop_room_positions, &room_side, &skipped_side) {
                     let next_room = Room::new(
                         &start_and_stop_room_positions.start,
@@ -74,7 +86,7 @@ impl Universe {
                             Some(val) => queue.push_back(val),
                             None => continue,
                         };
-                        self.place_hall(&hall_cell);
+                        hall_queue.push_back(hall_cell);
                         room_number -= 1;
                     }
                 }
@@ -174,7 +186,7 @@ impl Universe {
         &mut self,
         position: Rc<Position>,
         cell_type: &Cell,
-    ) -> PositionRange {
+    ) -> Option<PositionRange> {
         Room::create_start_and_stop_positions(
             position,
             &Size {
@@ -211,14 +223,30 @@ impl Universe {
         let stop = Position::new(random_x_vector, random_y_vector);
         PositionRange { start, stop }
     }
-
-    fn place_room(&mut self, room: &Room) {
-        //cells are copied rather than referenced b/c I plan to make room rc eventually
-        for (position, cell) in &room.cells {
-            if *self.cells.get_mut(position).unwrap() == Cell::Empty {
-                *self.cells.get_mut(position).unwrap() = **cell;
+    fn validate_all_places(&mut self, room: &Room) -> bool {
+        for (position, _) in &room.cells {
+            let cell = *self.cells.get_mut(position).unwrap();
+            match cell {
+                Cell::Empty => continue,
+                Cell::MainRoom => return false,
+                _ => continue,
             }
         }
+        true
+    }
+
+    fn place_room(&mut self, room: &Room) -> bool {
+        //cells are copied rather than referenced b/c I plan to make room rc eventually
+        if self.validate_all_places(room) {
+            for (position, cell) in &room.cells {
+                if *self.cells.get_mut(position).unwrap() == Cell::Empty {
+                    *self.cells.get_mut(position).unwrap() = **cell;
+                }
+            }
+        } else {
+            return false;
+        }
+        return true;
     }
 
     fn place_hall(&mut self, position: &Position) {

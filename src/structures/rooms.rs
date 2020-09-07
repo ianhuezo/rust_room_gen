@@ -62,23 +62,23 @@ impl Room {
         position: Rc<Position>,
         room_size: &Size,
         cell_type: &Cell,
-    ) -> PositionRange {
+    ) -> Option<PositionRange> {
         let (start_x, stop_x) = match cell_type {
             Cell::LeftSide => Self::left_start_stop_x_range(&position, room_size),
             Cell::RightSide => Self::right_start_stop_x_range(&position, room_size),
             Cell::TopSide | Cell::BottomSide => Self::offset_x_position(&position, room_size),
-            _ => Self::left_start_stop_x_range(&position, room_size),
+            _ => return None,
         };
         let (start_y, stop_y) = match cell_type {
             Cell::LeftSide | Cell::RightSide => Self::offset_y_position(position, room_size),
             Cell::TopSide => Self::top_start_stop_y_range(&position, room_size),
             Cell::BottomSide => Self::bottom_start_stop_y_position(&position, room_size),
-            _ => Self::offset_y_position(position, room_size),
+            _ => return None,
         };
-        PositionRange {
+        Some(PositionRange {
             start: Position::new(start_x, start_y),
             stop: Position::new(stop_x, stop_y),
-        }
+        })
     }
     pub fn get_random_cell_position_on_side(&self, cell: Cell) -> Rc<Position> {
         let side_cell = match cell {
