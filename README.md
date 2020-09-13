@@ -1,4 +1,4 @@
-### A random rust project for maze generation to get acquainted with the language
+### A random rust project for maze generation(genetic algorithm) to get acquainted with the language
 
 ---
 Works with WASM
